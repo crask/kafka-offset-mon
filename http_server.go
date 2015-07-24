@@ -5,13 +5,55 @@ import (
 	"net/http"
 )
 
+type HttpServerConfig struct {
+	listenAddr string
+
+	patternLatestOffset        string
+	patternConsumerGroupOffset string
+}
+
 type HttpServer struct {
+	config         *HttpServerConfig
 	workerRegistry map[string]*Worker
 }
 
-func NewHttpServer() *HttpServer {
-	s := &HttpServer{workerRegistry: map[string]*Worker{}}
+func NewHttpServer(config *HttpServerConfig) *HttpServer {
+	if config.listenAddr == "" {
+		config.listenAddr = ":8100"
+	}
+
+	if config.patternConsumerGroupOffset == "" {
+		config.patternConsumerGroupOffset = "/consumer_group_offset"
+	}
+
+	if config.patternLatestOffset == "" {
+		config.patternLatestOffset = "/latest_offset"
+	}
+
+	s := &HttpServer{
+		config:         config,
+		workerRegistry: map[string]*Worker{},
+	}
 	return s
+}
+
+func (this *HttpServer) Init() error {
+	http.HandleFunc(this.config.patternLatestOffset, this.LatestHandler)
+	http.HandleFunc(this.config.patternConsumerGroupOffset, this.ConsumerHandler)
+
+	return nil
+}
+
+func (this *HttpServer) Start() error {
+	go func() {
+		http.ListenAndServe(this.config.listenAddr, nil)
+	}()
+
+	return nil
+}
+
+func (this *HttpServer) Close() error {
+	return nil
 }
 
 func (this *HttpServer) getWorker(zookeeper string) (*Worker, error) {

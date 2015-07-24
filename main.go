@@ -1,13 +1,32 @@
 package main
 
-import "net/http"
+import (
+	"log"
+	"os"
+	"os/signal"
+	"syscall"
+)
 
 func main() {
 
-	s := NewHttpServer()
+	httpsvrConfig := &HttpServerConfig{}
+	httpsvr := NewHttpServer(httpsvrConfig)
+	httpsvr.Init()
+	httpsvr.Start()
 
-	http.HandleFunc("/LatestOffset", s.LatestHandler)
-	http.HandleFunc("/ConsumerOffset", s.ConsumerHandler)
+	influxdbSyncerConfig := &InfluxdbSyncerConfig{}
+	influxdbSyncer := NewInfluxdbSyncer(influxdbSyncerConfig)
+	influxdbSyncer.Init()
+	influxdbSyncer.Start()
 
-	http.ListenAndServe(":8088", nil)
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, syscall.SIGINT, syscall.SIGUSR1, syscall.SIGUSR2, syscall.SIGTERM, syscall.SIGKILL)
+
+	select {
+	case <-c:
+		log.Printf("catch exit signal")
+		httpsvr.Close()
+		influxdbSyncer.Close()
+		log.Printf("exit done")
+	}
 }
