@@ -1,0 +1,96 @@
+{
+	"ImportPath": "github.com/crask/kafka-offset-mon",
+	"GoVersion": "go1.4.2",
+	"Deps": [
+		{
+			"ImportPath": "github.com/armon/go-metrics",
+			"Rev": "b2d95e5291cdbc26997d1301a5e467ecbb240e25"
+		},
+		{
+			"ImportPath": "github.com/boltdb/bolt",
+			"Comment": "v1.0-113-g980670a",
+			"Rev": "980670afcebfd86727505b3061d8667195234816"
+		},
+		{
+			"ImportPath": "github.com/eapache/go-resiliency/breaker",
+			"Comment": "v1.0.0-1-ged0319b",
+			"Rev": "ed0319b32e66e3295db52695ba3ee493e823fbfe"
+		},
+		{
+			"ImportPath": "github.com/eapache/queue",
+			"Comment": "v1.0.2",
+			"Rev": "ded5959c0d4e360646dc9e9908cff48666781367"
+		},
+		{
+			"ImportPath": "github.com/gogo/protobuf/proto",
+			"Rev": "5ba1012ef3868db1b9ff374280a558c1bfff39c3"
+		},
+		{
+			"ImportPath": "github.com/golang/snappy",
+			"Rev": "0c7f8a7704bfec561913f4df52c832f094ef56f0"
+		},
+		{
+			"ImportPath": "github.com/hashicorp/go-msgpack/codec",
+			"Rev": "fa3f63826f7c23912c15263591e65d54d080b458"
+		},
+		{
+			"ImportPath": "github.com/hashicorp/raft",
+			"Rev": "8fd9a2fdfd154f4b393aa24cff91e3c317efe839"
+		},
+		{
+			"ImportPath": "github.com/hashicorp/raft-boltdb",
+			"Rev": "d1e82c1ec3f15ee991f7cc7ffd5b67ff6f5bbaee"
+		},
+		{
+			"ImportPath": "github.com/influxdb/influxdb/client",
+			"Comment": "v0.9.1-rc1-302-g237b52b",
+			"Rev": "237b52b46ae0dc41bf926500991b69121c681c67"
+		},
+		{
+			"ImportPath": "github.com/influxdb/influxdb/influxql",
+			"Comment": "v0.9.1-rc1-302-g237b52b",
+			"Rev": "237b52b46ae0dc41bf926500991b69121c681c67"
+		},
+		{
+			"ImportPath": "github.com/influxdb/influxdb/meta",
+			"Comment": "v0.9.1-rc1-302-g237b52b",
+			"Rev": "237b52b46ae0dc41bf926500991b69121c681c67"
+		},
+		{
+			"ImportPath": "github.com/influxdb/influxdb/snapshot",
+			"Comment": "v0.9.1-rc1-302-g237b52b",
+			"Rev": "237b52b46ae0dc41bf926500991b69121c681c67"
+		},
+		{
+			"ImportPath": "github.com/influxdb/influxdb/toml",
+			"Comment": "v0.9.1-rc1-302-g237b52b",
+			"Rev": "237b52b46ae0dc41bf926500991b69121c681c67"
+		},
+		{
+			"ImportPath": "github.com/influxdb/influxdb/tsdb",
+			"Comment": "v0.9.1-rc1-302-g237b52b",
+			"Rev": "237b52b46ae0dc41bf926500991b69121c681c67"
+		},
+		{
+			"ImportPath": "github.com/samuel/go-zookeeper/zk",
+			"Rev": "5bb5cfc093ad18a28148c578f8632cfdb4d802e4"
+		},
+		{
+			"ImportPath": "github.com/wvanbergen/kazoo-go",
+			"Rev": "15e8d60fd2c1be5b57071b5bbc0b4479cd162a5f"
+		},
+		{
+			"ImportPath": "golang.org/x/crypto/bcrypt",
+			"Rev": "1fbbd62cfec66bd39d91e97749579579d4d3037e"
+		},
+		{
+			"ImportPath": "golang.org/x/crypto/blowfish",
+			"Rev": "1fbbd62cfec66bd39d91e97749579579d4d3037e"
+		},
+		{
+			"ImportPath": "gopkg.in/Shopify/sarama.v1",
+			"Comment": "v1.4.3",
+			"Rev": "2b0d726b296a33715f7f970f006a80c7bfc8a2e8"
+		}
+	]
+}
