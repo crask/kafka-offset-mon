@@ -6,10 +6,9 @@ import (
 )
 
 type HttpServerConfig struct {
-	listenAddr string
-
-	patternLatestOffset        string
-	patternConsumerGroupOffset string
+	ListenAddr                 string `json:"listenAddr"`
+	PatternLatestOffset        string `json:"patternLatestOffset"`
+	PatternConsumerGroupOffset string `json:"patternConsumerGroupOffset"`
 }
 
 type HttpServer struct {
@@ -18,16 +17,16 @@ type HttpServer struct {
 }
 
 func NewHttpServer(config *HttpServerConfig) *HttpServer {
-	if config.listenAddr == "" {
-		config.listenAddr = ":8100"
+	if config.ListenAddr == "" {
+		config.ListenAddr = ":8100"
 	}
 
-	if config.patternConsumerGroupOffset == "" {
-		config.patternConsumerGroupOffset = "/consumer_group_offset"
+	if config.PatternConsumerGroupOffset == "" {
+		config.PatternConsumerGroupOffset = "/consumer_group_offset"
 	}
 
-	if config.patternLatestOffset == "" {
-		config.patternLatestOffset = "/latest_offset"
+	if config.PatternLatestOffset == "" {
+		config.PatternLatestOffset = "/latest_offset"
 	}
 
 	s := &HttpServer{
@@ -38,15 +37,15 @@ func NewHttpServer(config *HttpServerConfig) *HttpServer {
 }
 
 func (this *HttpServer) Init() error {
-	http.HandleFunc(this.config.patternLatestOffset, this.LatestHandler)
-	http.HandleFunc(this.config.patternConsumerGroupOffset, this.ConsumerHandler)
+	http.HandleFunc(this.config.PatternLatestOffset, this.LatestHandler)
+	http.HandleFunc(this.config.PatternConsumerGroupOffset, this.ConsumerHandler)
 
 	return nil
 }
 
 func (this *HttpServer) Start() error {
 	go func() {
-		http.ListenAndServe(this.config.listenAddr, nil)
+		http.ListenAndServe(this.config.ListenAddr, nil)
 	}()
 
 	return nil

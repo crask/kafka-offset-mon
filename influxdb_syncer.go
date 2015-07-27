@@ -10,16 +10,15 @@ import (
 )
 
 type InfluxdbSyncerConfig struct {
-	zookeeper                              string
-	influxdbHost                           string
-	influxdbUser                           string
-	influxdbPassword                       string
-	influxdbDb                             string
-	influxdbRetentionPolicy                string
-	influxdbMeasurementLatestOffset        string
-	influxdbMeasurementConsumerGroupOffset string
-
-	interval time.Duration
+	Zookeeper                              string `json:"zookeeper"`
+	InfluxdbHost                           string `json:"influxdbHost"`
+	InfluxdbUser                           string `json:"influxdbUser"`
+	InfluxdbPassword                       string `json:"influxdbPassword"`
+	InfluxdbDb                             string `json:"influxdbDb"`
+	InfluxdbRetentionPolicy                string `json:"influxdbRetentionPolicy"`
+	InfluxdbMeasurementLatestOffset        string `json:"influxdbMeasurementLatestOffset"`
+	InfluxdbMeasurementConsumerGroupOffset string `json:"influxdbMeasurementConsumerGroupOffset"`
+	Interval                               string `json:"interval"`
 }
 
 type InfluxdbSyncer struct {
@@ -30,33 +29,33 @@ type InfluxdbSyncer struct {
 }
 
 func NewInfluxdbSyncer(config *InfluxdbSyncerConfig) *InfluxdbSyncer {
-	if config.zookeeper == "" {
-		config.zookeeper = "127.0.0.1:2181"
+	if config.Zookeeper == "" {
+		config.Zookeeper = "127.0.0.1:2181"
 	}
-	if config.influxdbHost == "" {
-		config.influxdbHost = "http://127.0.0.1:8086"
+	if config.InfluxdbHost == "" {
+		config.InfluxdbHost = "http://127.0.0.1:8086"
 	}
-	if config.influxdbUser == "" {
-		config.influxdbUser = "root"
+	if config.InfluxdbUser == "" {
+		config.InfluxdbUser = "root"
 	}
-	if config.influxdbPassword == "" {
-		config.influxdbPassword = "root"
+	if config.InfluxdbPassword == "" {
+		config.InfluxdbPassword = "root"
 	}
-	if config.influxdbDb == "" {
-		config.influxdbDb = "kafka_monitor"
+	if config.InfluxdbDb == "" {
+		config.InfluxdbDb = "kafka_monitor"
 	}
-	if config.influxdbRetentionPolicy == "" {
-		config.influxdbRetentionPolicy = "default"
+	if config.InfluxdbRetentionPolicy == "" {
+		config.InfluxdbRetentionPolicy = "default"
 	}
-	if config.influxdbMeasurementConsumerGroupOffset == "" {
-		config.influxdbMeasurementConsumerGroupOffset = "consumer_group_offset"
+	if config.InfluxdbMeasurementConsumerGroupOffset == "" {
+		config.InfluxdbMeasurementConsumerGroupOffset = "consumer_group_offset"
 	}
-	if config.influxdbMeasurementLatestOffset == "" {
-		config.influxdbMeasurementLatestOffset = "latest_offset"
+	if config.InfluxdbMeasurementLatestOffset == "" {
+		config.InfluxdbMeasurementLatestOffset = "latest_offset"
 	}
 
-	if config.interval == 0 {
-		config.interval = time.Second * 5
+	if config.Interval == "" {
+		config.Interval = "5s"
 	}
 
 	s := &InfluxdbSyncer{config: config}
@@ -66,7 +65,7 @@ func NewInfluxdbSyncer(config *InfluxdbSyncerConfig) *InfluxdbSyncer {
 func (this *InfluxdbSyncer) Init() error {
 
 	/* init worker */
-	worker := NewWorker(this.config.zookeeper)
+	worker := NewWorker(this.config.Zookeeper)
 	err := worker.Init()
 	if err != nil {
 		return err
@@ -75,15 +74,15 @@ func (this *InfluxdbSyncer) Init() error {
 	this.worker = worker
 
 	/* init influxdb */
-	influxdbUrl, err := url.Parse(this.config.influxdbHost)
+	influxdbUrl, err := url.Parse(this.config.InfluxdbHost)
 	if err != nil {
 		return err
 	}
 
 	conf := client.Config{
 		URL:       *influxdbUrl,
-		Username:  this.config.influxdbUser,
-		Password:  this.config.influxdbPassword,
+		Username:  this.config.InfluxdbUser,
+		Password:  this.config.InfluxdbPassword,
 		UserAgent: "kafka-offset-mon",
 	}
 	con, err := client.NewClient(conf)
@@ -95,7 +94,11 @@ func (this *InfluxdbSyncer) Init() error {
 
 	/* init ticker */
 
-	this.ticker = time.NewTicker(this.config.interval)
+	duration, err := time.ParseDuration(this.config.Interval)
+	if err != nil {
+		duration = time.Second * 5
+	}
+	this.ticker = time.NewTicker(duration)
 
 	return nil
 }
@@ -111,10 +114,16 @@ func (this *InfluxdbSyncer) Start() error {
 			select {
 
 			case <-this.ticker.C:
-				log.Printf("[InfluxdbSyncer]start sync\n")
-				this.syncLatestOffset()
-				this.syncConsumerGroupOffset()
-				log.Printf("[InfluxdbSyncer]end sync\n")
+				log.Printf("[InfluxdbSyncer]start sync for %s", this.config.Zookeeper)
+				err := this.syncLatestOffset()
+				if err != nil {
+					log.Printf("[Sync ERR]%s", err.Error())
+				}
+				err = this.syncConsumerGroupOffset()
+				if err != nil {
+					log.Printf("[Sync ERR]%s", err.Error())
+				}
+				log.Printf("[InfluxdbSyncer]end sync for %s", this.config.Zookeeper)
 			}
 		}
 	}()
@@ -136,7 +145,7 @@ func (this *InfluxdbSyncer) syncLatestOffset() error {
 	for topic, partitionItem := range offsets {
 		for partition, offset := range partitionItem {
 			point := client.Point{
-				Measurement: this.config.influxdbMeasurementLatestOffset,
+				Measurement: this.config.InfluxdbMeasurementLatestOffset,
 				Tags:        map[string]string{},
 				Fields: map[string]interface{}{
 					"topic":     topic,
@@ -151,7 +160,7 @@ func (this *InfluxdbSyncer) syncLatestOffset() error {
 	}
 	_, err = this.dbclient.Write(client.BatchPoints{
 		Points:          pts,
-		Database:        this.config.influxdbDb,
+		Database:        this.config.InfluxdbDb,
 		RetentionPolicy: "default",
 	})
 
@@ -172,7 +181,7 @@ func (this *InfluxdbSyncer) syncConsumerGroupOffset() error {
 		for topic, partitionItem := range topicItem {
 			for partition, offset := range partitionItem {
 				point := client.Point{
-					Measurement: this.config.influxdbMeasurementConsumerGroupOffset,
+					Measurement: this.config.InfluxdbMeasurementConsumerGroupOffset,
 					Tags:        map[string]string{},
 					Fields: map[string]interface{}{
 						"group":     group,
@@ -190,14 +199,14 @@ func (this *InfluxdbSyncer) syncConsumerGroupOffset() error {
 	}
 	_, err = this.dbclient.Write(client.BatchPoints{
 		Points:          pts,
-		Database:        this.config.influxdbDb,
-		RetentionPolicy: this.config.influxdbRetentionPolicy,
+		Database:        this.config.InfluxdbDb,
+		RetentionPolicy: this.config.InfluxdbRetentionPolicy,
 	})
 
 	return err
 }
 
-func (this *InfluxdbSyncer) Close() {
+func (this *InfluxdbSyncer) Close() error {
 
 	if this.ticker != nil {
 		this.ticker.Stop()
@@ -205,4 +214,6 @@ func (this *InfluxdbSyncer) Close() {
 	if this.worker != nil {
 		this.worker.Close()
 	}
+
+	return nil
 }

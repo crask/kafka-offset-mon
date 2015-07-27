@@ -1,0 +1,20 @@
+{
+    "http_server": {
+        "listenAddr": ":8098",
+        "patternLatestOffset": "/latest_offset",
+        "patternConsumerGroupOffset": "/consumer_group_offset"
+    },
+    "influxdbSyncers": [
+        {
+            "zookeeper": "127.0.0.1:2181",
+            "influxdbHost": "http://127.0.0.1:8086",
+            "influxdbUser": "root",
+            "influxdbPassword": "root",
+            "influxdbDb": "kafka_monitor",
+            "influxdbRetentionPolicy": "default",
+            "influxdbMeasurementLatestOffset": "latest_offset",
+            "influxdbMeasurementConsumerGroupOffset": "consumer_group_offset",
+			"interval":"5s"
+        }
+    ]
+}
