@@ -10,15 +10,16 @@ import (
 )
 
 type InfluxdbSyncerConfig struct {
-	Zookeeper                              string `json:"zookeeper"`
-	InfluxdbHost                           string `json:"influxdbHost"`
-	InfluxdbUser                           string `json:"influxdbUser"`
-	InfluxdbPassword                       string `json:"influxdbPassword"`
-	InfluxdbDb                             string `json:"influxdbDb"`
-	InfluxdbRetentionPolicy                string `json:"influxdbRetentionPolicy"`
-	InfluxdbMeasurementLatestOffset        string `json:"influxdbMeasurementLatestOffset"`
-	InfluxdbMeasurementConsumerGroupOffset string `json:"influxdbMeasurementConsumerGroupOffset"`
-	Interval                               string `json:"interval"`
+	Zookeeper                                string `json:"zookeeper"`
+	InfluxdbHost                             string `json:"influxdbHost"`
+	InfluxdbUser                             string `json:"influxdbUser"`
+	InfluxdbPassword                         string `json:"influxdbPassword"`
+	InfluxdbDb                               string `json:"influxdbDb"`
+	InfluxdbRetentionPolicy                  string `json:"influxdbRetentionPolicy"`
+	InfluxdbMeasurementLatestOffset          string `json:"influxdbMeasurementLatestOffset"`
+	InfluxdbMeasurementConsumerGroupOffset   string `json:"influxdbMeasurementConsumerGroupOffset"`
+	InfluxdbMeasurementConsumerGroupDistance string `json:"influxdbMeasurementConsumerGroupDistance"`
+	Interval                                 string `json:"interval"`
 }
 
 type InfluxdbSyncer struct {
@@ -50,6 +51,9 @@ func NewInfluxdbSyncer(config *InfluxdbSyncerConfig) *InfluxdbSyncer {
 	if config.InfluxdbMeasurementConsumerGroupOffset == "" {
 		config.InfluxdbMeasurementConsumerGroupOffset = "consumer_group_offset"
 	}
+	if config.InfluxdbMeasurementConsumerGroupDistance == "" {
+		config.InfluxdbMeasurementConsumerGroupDistance = "consumer_group_distance"
+	}
 	if config.InfluxdbMeasurementLatestOffset == "" {
 		config.InfluxdbMeasurementLatestOffset = "latest_offset"
 	}
@@ -66,6 +70,7 @@ func (this *InfluxdbSyncer) Init() error {
 
 	/* init worker */
 	worker := NewWorker(this.config.Zookeeper)
+
 	err := worker.Init()
 	if err != nil {
 		return err
@@ -109,6 +114,8 @@ func (this *InfluxdbSyncer) Start() error {
 		return errors.New("not init")
 	}
 
+	log.Printf("InfluxdbSyncer for %s started.", this.config.Zookeeper)
+
 	go func() {
 		for {
 			select {
@@ -120,6 +127,10 @@ func (this *InfluxdbSyncer) Start() error {
 					log.Printf("[Sync ERR]%s", err.Error())
 				}
 				err = this.syncConsumerGroupOffset()
+				if err != nil {
+					log.Printf("[Sync ERR]%s", err.Error())
+				}
+				err = this.syncConsumerGroupDistance()
 				if err != nil {
 					log.Printf("[Sync ERR]%s", err.Error())
 				}
@@ -182,6 +193,46 @@ func (this *InfluxdbSyncer) syncConsumerGroupOffset() error {
 			for partition, offset := range partitionItem {
 				point := client.Point{
 					Measurement: this.config.InfluxdbMeasurementConsumerGroupOffset,
+					Tags:        map[string]string{},
+					Fields: map[string]interface{}{
+						"group":     group,
+						"topic":     topic,
+						"partition": partition,
+						"value":     offset,
+					},
+					Time:      time.Now(),
+					Precision: "s",
+				}
+				pts = append(pts, point)
+			}
+		}
+
+	}
+	_, err = this.dbclient.Write(client.BatchPoints{
+		Points:          pts,
+		Database:        this.config.InfluxdbDb,
+		RetentionPolicy: this.config.InfluxdbRetentionPolicy,
+	})
+
+	return err
+}
+
+func (this *InfluxdbSyncer) syncConsumerGroupDistance() error {
+	worker := this.worker
+
+	offsets, err := worker.GetConsumerGroupsOffsetDistance()
+
+	if err != nil {
+		return err
+	}
+
+	pts := []client.Point{}
+
+	for group, topicItem := range offsets {
+		for topic, partitionItem := range topicItem {
+			for partition, offset := range partitionItem {
+				point := client.Point{
+					Measurement: this.config.InfluxdbMeasurementConsumerGroupDistance,
 					Tags:        map[string]string{},
 					Fields: map[string]interface{}{
 						"group":     group,

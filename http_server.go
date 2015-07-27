@@ -6,9 +6,10 @@ import (
 )
 
 type HttpServerConfig struct {
-	ListenAddr                 string `json:"listenAddr"`
-	PatternLatestOffset        string `json:"patternLatestOffset"`
-	PatternConsumerGroupOffset string `json:"patternConsumerGroupOffset"`
+	ListenAddr                   string `json:"listenAddr"`
+	PatternLatestOffset          string `json:"patternLatestOffset"`
+	PatternConsumerGroupOffset   string `json:"patternConsumerGroupOffset"`
+	PatternConsumerGroupDistance string `json:"patternConsumerGroupDistance"`
 }
 
 type HttpServer struct {
@@ -25,6 +26,10 @@ func NewHttpServer(config *HttpServerConfig) *HttpServer {
 		config.PatternConsumerGroupOffset = "/consumer_group_offset"
 	}
 
+	if config.PatternConsumerGroupDistance == "" {
+		config.PatternConsumerGroupDistance = "/consumer_group_distance"
+	}
+
 	if config.PatternLatestOffset == "" {
 		config.PatternLatestOffset = "/latest_offset"
 	}
@@ -37,8 +42,9 @@ func NewHttpServer(config *HttpServerConfig) *HttpServer {
 }
 
 func (this *HttpServer) Init() error {
-	http.HandleFunc(this.config.PatternLatestOffset, this.LatestHandler)
-	http.HandleFunc(this.config.PatternConsumerGroupOffset, this.ConsumerHandler)
+	http.HandleFunc(this.config.PatternLatestOffset, this.LatestOffsetHandler)
+	http.HandleFunc(this.config.PatternConsumerGroupOffset, this.ConsumerGroupOffsetHandler)
+	http.HandleFunc(this.config.PatternConsumerGroupDistance, this.ConsumerGroupDistanceHandler)
 
 	return nil
 }
@@ -74,7 +80,7 @@ func (this *HttpServer) getWorker(zookeeper string) (*Worker, error) {
 	return worker, err
 }
 
-func (this *HttpServer) LatestHandler(res http.ResponseWriter, req *http.Request) {
+func (this *HttpServer) LatestOffsetHandler(res http.ResponseWriter, req *http.Request) {
 	req.ParseForm()
 	zookeeper := req.Form.Get("zookeeper")
 	callback := req.Form.Get("callback")
@@ -107,7 +113,7 @@ func (this *HttpServer) LatestHandler(res http.ResponseWriter, req *http.Request
 	res.Write(reponseStr)
 }
 
-func (this *HttpServer) ConsumerHandler(res http.ResponseWriter, req *http.Request) {
+func (this *HttpServer) ConsumerGroupOffsetHandler(res http.ResponseWriter, req *http.Request) {
 	req.ParseForm()
 	zookeeper := req.Form.Get("zookeeper")
 	callback := req.Form.Get("callback")
@@ -121,6 +127,39 @@ func (this *HttpServer) ConsumerHandler(res http.ResponseWriter, req *http.Reque
 	}
 
 	latestOffset, err := worker.GetConsumerGroupsOffset()
+	if err != nil {
+		res.Write([]byte(err.Error()))
+		res.WriteHeader(500)
+		return
+	}
+
+	reponseStr, err := json.Marshal(latestOffset)
+	if err != nil {
+		res.Write([]byte(err.Error()))
+		res.WriteHeader(500)
+		return
+	}
+
+	if callback != "" {
+		res.Write([]byte(callback))
+	}
+	res.Write(reponseStr)
+}
+
+func (this *HttpServer) ConsumerGroupDistanceHandler(res http.ResponseWriter, req *http.Request) {
+	req.ParseForm()
+	zookeeper := req.Form.Get("zookeeper")
+	callback := req.Form.Get("callback")
+
+	worker, err := this.getWorker(zookeeper)
+
+	if err != nil {
+		res.Write([]byte(err.Error()))
+		res.WriteHeader(500)
+		return
+	}
+
+	latestOffset, err := worker.GetConsumerGroupsOffsetDistance()
 	if err != nil {
 		res.Write([]byte(err.Error()))
 		res.WriteHeader(500)

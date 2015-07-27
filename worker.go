@@ -28,12 +28,15 @@ func (this *Worker) Init() error {
 	if nil != err {
 		return err
 	}
+
 	kafkaClientConfig := sarama.NewConfig()
 	brokerList, err := kazooClient.BrokerList()
 	if nil != err {
 		return err
 	}
+
 	kafkaClient, err := sarama.NewClient(brokerList, kafkaClientConfig)
+
 	if nil != err {
 		return err
 	}
@@ -111,6 +114,56 @@ func (this *Worker) GetConsumerGroupsOffset() (map[string]map[string]map[string]
 					return nil, err
 				}
 				topicItem[fmt.Sprintf("%d", partition)] = offset
+			}
+			groupItem[topic] = topicItem
+		}
+		rtn[group.Name] = groupItem
+	}
+	return rtn, nil
+}
+
+func (this *Worker) GetConsumerGroupsOffsetDistance() (map[string]map[string]map[string]int64, error) {
+
+	if this.connected == false {
+		return nil, errors.New("not connected,call Init first")
+	}
+
+	latest_offset, err := this.GetLatestOffset()
+
+	if err != nil {
+		return nil, err
+	}
+
+	rtn := map[string]map[string]map[string]int64{}
+
+	kazooClient := this.kazooClient
+	kafkaClient := this.kafkaClient
+
+	groups, err := kazooClient.Consumergroups()
+	if nil != err {
+		return nil, err
+	}
+
+	topics, err := kafkaClient.Topics()
+	if nil != err {
+		return nil, err
+	}
+
+	for _, group := range groups {
+		groupItem := map[string]map[string]int64{}
+		for _, topic := range topics {
+			topicItem := map[string]int64{}
+			partitions, err := kafkaClient.Partitions(topic)
+			if nil != err {
+				return nil, err
+			}
+			for _, partition := range partitions {
+				offset, err := group.FetchOffset(topic, partition)
+				if nil != err {
+					return nil, err
+				}
+				partition_str := fmt.Sprintf("%d", partition)
+				topicItem[fmt.Sprintf("%d", partition)] = latest_offset[topic][partition_str] - offset
 			}
 			groupItem[topic] = topicItem
 		}

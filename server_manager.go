@@ -16,13 +16,16 @@ func (this *ServerManager) AddInfluxdbSyncer(server *InfluxdbSyncer) {
 func (this *ServerManager) Init() error {
 	for _, server := range this.HttpServers {
 		err := server.Init()
+
 		if err != nil {
 			return err
 		}
 	}
 
 	for _, server := range this.InfluxdbSyncers {
+
 		err := server.Init()
+
 		if err != nil {
 			return err
 		}

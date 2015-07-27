@@ -7,6 +7,8 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+
+	"gopkg.in/Shopify/sarama.v1"
 )
 
 var (
@@ -41,6 +43,8 @@ func main() {
 		os.Exit(-1)
 	}
 
+	sarama.Logger = log.New(os.Stdout, "[Sarama] ", log.LstdFlags)
+
 	sm := &ServerManager{}
 
 	if config.HttpServer.ListenAddr != "" {
@@ -58,6 +62,7 @@ func main() {
 	}
 
 	err = sm.Init()
+
 	if err != nil {
 		log.Fatalf("Init servers failed:%s", err.Error())
 		os.Exit(-1)
@@ -68,6 +73,8 @@ func main() {
 		log.Fatalf("Start servers failed:%s", err.Error())
 		os.Exit(-1)
 	}
+
+	log.Printf("sm started:%#v,%#v", sm.HttpServers, sm.InfluxdbSyncers)
 
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, syscall.SIGINT, syscall.SIGUSR1, syscall.SIGUSR2, syscall.SIGTERM, syscall.SIGKILL)
