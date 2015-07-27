@@ -66,15 +66,21 @@ func (this *Worker) GetLatestOffset() (map[string]map[string]int64, error) {
 		if nil != err {
 			return nil, err
 		}
+		var offset_total int64
+		offset_total = 0
 		for _, partition := range partitions {
 			offset, err := kafkaClient.GetOffset(topic, partition, sarama.OffsetNewest)
 			if nil != err {
 				return nil, err
 			}
 
+			offset_total += offset
+
 			item[fmt.Sprintf("%d", partition)] = offset
 		}
+		item["total"] = offset_total
 		rtn[topic] = item
+
 	}
 
 	return rtn, nil
@@ -108,13 +114,17 @@ func (this *Worker) GetConsumerGroupsOffset() (map[string]map[string]map[string]
 			if nil != err {
 				return nil, err
 			}
+			var offset_total int64
+			offset_total = 0
 			for _, partition := range partitions {
 				offset, err := group.FetchOffset(topic, partition)
 				if nil != err {
 					return nil, err
 				}
+				offset_total += offset
 				topicItem[fmt.Sprintf("%d", partition)] = offset
 			}
+			topicItem["total"] = offset_total
 			groupItem[topic] = topicItem
 		}
 		rtn[group.Name] = groupItem
@@ -157,14 +167,19 @@ func (this *Worker) GetConsumerGroupsOffsetDistance() (map[string]map[string]map
 			if nil != err {
 				return nil, err
 			}
+			var distance_total int64
+			distance_total = 0
 			for _, partition := range partitions {
 				offset, err := group.FetchOffset(topic, partition)
 				if nil != err {
 					return nil, err
 				}
 				partition_str := fmt.Sprintf("%d", partition)
-				topicItem[fmt.Sprintf("%d", partition)] = latest_offset[topic][partition_str] - offset
+				distance := latest_offset[topic][partition_str] - offset
+				distance_total += distance
+				topicItem[fmt.Sprintf("%d", partition)] = distance
 			}
+			topicItem["total"] = distance_total
 			groupItem[topic] = topicItem
 		}
 		rtn[group.Name] = groupItem
