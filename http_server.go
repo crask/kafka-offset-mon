@@ -77,6 +77,8 @@ func (this *HttpServer) getWorker(zookeeper string) (*Worker, error) {
 	err := worker.Init()
 	if err != nil {
 		worker = nil
+	} else {
+		this.workerRegistry[zookeeper] = worker
 	}
 
 	return worker, err
