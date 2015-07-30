@@ -94,38 +94,36 @@ func (this *Worker) GetConsumerGroupsOffset() (map[string]map[string]map[string]
 	rtn := map[string]map[string]map[string]int64{}
 
 	kazooClient := this.kazooClient
-	kafkaClient := this.kafkaClient
 
 	groups, err := kazooClient.Consumergroups()
 	if nil != err {
 		return nil, err
 	}
 
-	topics, err := kafkaClient.Topics()
-	if nil != err {
-		return nil, err
-	}
-
 	for _, group := range groups {
 		groupItem := map[string]map[string]int64{}
+		topics, err := group.Topics()
+		if nil != err {
+			return nil, err
+		}
 		for _, topic := range topics {
 			topicItem := map[string]int64{}
-			partitions, err := kafkaClient.Partitions(topic)
+			partitions, err := topic.Partitions()
 			if nil != err {
 				return nil, err
 			}
 			var offset_total int64
 			offset_total = 0
 			for _, partition := range partitions {
-				offset, err := group.FetchOffset(topic, partition)
+				offset, err := group.FetchOffset(topic.Name, partition.ID)
 				if nil != err {
 					return nil, err
 				}
 				offset_total += offset
-				topicItem[fmt.Sprintf("%d", partition)] = offset
+				topicItem[fmt.Sprintf("%d", partition.ID)] = offset
 			}
 			topicItem["total"] = offset_total
-			groupItem[topic] = topicItem
+			groupItem[topic.Name] = topicItem
 		}
 		rtn[group.Name] = groupItem
 	}
@@ -147,40 +145,39 @@ func (this *Worker) GetConsumerGroupsOffsetDistance() (map[string]map[string]map
 	rtn := map[string]map[string]map[string]int64{}
 
 	kazooClient := this.kazooClient
-	kafkaClient := this.kafkaClient
 
 	groups, err := kazooClient.Consumergroups()
 	if nil != err {
 		return nil, err
 	}
 
-	topics, err := kafkaClient.Topics()
-	if nil != err {
-		return nil, err
-	}
-
 	for _, group := range groups {
+
 		groupItem := map[string]map[string]int64{}
+		topics, err := group.Topics()
+		if nil != err {
+			return nil, err
+		}
 		for _, topic := range topics {
 			topicItem := map[string]int64{}
-			partitions, err := kafkaClient.Partitions(topic)
+			partitions, err := topic.Partitions()
 			if nil != err {
 				return nil, err
 			}
 			var distance_total int64
 			distance_total = 0
 			for _, partition := range partitions {
-				offset, err := group.FetchOffset(topic, partition)
+				offset, err := group.FetchOffset(topic.Name, partition.ID)
 				if nil != err {
 					return nil, err
 				}
-				partition_str := fmt.Sprintf("%d", partition)
-				distance := latest_offset[topic][partition_str] - offset
+				partition_str := fmt.Sprintf("%d", partition.ID)
+				distance := latest_offset[topic.Name][partition_str] - offset
 				distance_total += distance
-				topicItem[fmt.Sprintf("%d", partition)] = distance
+				topicItem[partition_str] = distance
 			}
 			topicItem["total"] = distance_total
-			groupItem[topic] = topicItem
+			groupItem[topic.Name] = topicItem
 		}
 		rtn[group.Name] = groupItem
 	}
