@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
 )
 
@@ -62,11 +63,12 @@ func (this *HttpServer) Close() error {
 }
 
 func (this *HttpServer) getWorker(zookeeper string) (*Worker, error) {
-	for k, w := range this.workerRegistry {
-		if k == zookeeper {
-			return w, nil
-		}
+
+	if v, ok := this.workerRegistry[zookeeper]; ok {
+		return v, nil
 	}
+
+	log.Printf("[HttpServer]zookeeper handler for :%s not found , will create", zookeeper)
 
 	if zookeeper == "" {
 		zookeeper = "localhost:2181"
