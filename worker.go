@@ -164,7 +164,7 @@ func (this *Worker) GetConsumerGroupsOffsetDistance() (map[string]map[string]map
 			if nil != err {
 				return nil, err
 			}
-			var distance_total int64
+			var distance_total, distance int64
 			distance_total = 0
 			for _, partition := range partitions {
 				offset, err := group.FetchOffset(topic.Name, partition.ID)
@@ -172,7 +172,7 @@ func (this *Worker) GetConsumerGroupsOffsetDistance() (map[string]map[string]map
 					return nil, err
 				}
 				partition_str := fmt.Sprintf("%d", partition.ID)
-				distance := latest_offset[topic.Name][partition_str] - offset
+				distance = latest_offset[topic.Name][partition_str] - offset
 				distance_total += distance
 				topicItem[partition_str] = distance
 			}
