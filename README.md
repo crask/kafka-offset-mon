@@ -43,3 +43,8 @@ kafka-offset-mon支持两类数据接口：
 
 ### http服务
 如上配置，可通过`http://localhost:8098/latest_offset`来访问，返回一段json数据。
+
+## zabbix脚本
+为了方便给zabbix导出数据，使用了[/scripts/kafka-zabbix.php](/scripts/kafka-zabbix.php)
+
+其从http服务读取数据，并组织为log文件，使用zabbix来抓取
